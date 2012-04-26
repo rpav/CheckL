@@ -25,15 +25,16 @@ bit of Common Lisp magic to take advantage of it.  Thus, CheckL:
     |
     v
 
-Result 1 has changed: 3
+Result 0 has changed: 3
 Previous result: 2
    [Condition of type CHECKL::RESULT-ERROR]
 
 Restarts:
  0: [USE-NEW-VALUE] The new value is correct, use it from now on.
- 1: [RETRY] Retry SLIME interactive evaluation request.
- 2: [*ABORT] Return to SLIME's top level.
- 3: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)
+ 1: [SKIP-TEST] Skip this, leaving the old value, but continue testing
+ 2: [RETRY] Retry SLIME interactive evaluation request.
+ 3: [*ABORT] Return to SLIME's top level.
+ 4: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)
 ```
 
 # Usage
@@ -236,4 +237,3 @@ I wrote this system literally today and, ironically, haven't tested it
 much.  It's likely to undergo some changes when it hits more
 real-world cases, but the API shouldn't change much.  Simplicity and
 lispy workflow is the goal here.
-
