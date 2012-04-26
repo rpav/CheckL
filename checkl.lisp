@@ -54,6 +54,7 @@
 (defun verify-result (name result)
   (let* ((results (package-tests-results (current-tests)))
          (last-result (gethash name results))
+         (index-base 0)
          result-index result-value)
     (loop
       (restart-case
@@ -64,7 +65,7 @@
                      (setf result-index i)
                      (setf result-value val)
                      (error (make-condition 'result-error
-                                            :result-index i
+                                            :result-index (+ i index-base)
                                             :result-value val
                                             :last-value prev)))
                 finally
@@ -77,8 +78,9 @@
         (skip-test ()
           :report "Skip this, leaving the old value, but continue testing"
           :test (lambda (c) (typep c 'result-error))
-          (setf result (nthcdr result-index result))
-          (setf last-result (nthcdr result-index last-result)))))))
+          (incf index-base (1+ result-index))
+          (setf result (nthcdr (1+ result-index) result))
+          (setf last-result (nthcdr (1+ result-index) last-result)))))))
 
 (defmacro check ((&key name (category :default)) &body body)
   (let ((fun (gensym))
