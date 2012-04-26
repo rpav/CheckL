@@ -55,10 +55,11 @@
   (let* ((results (package-tests-results (current-tests)))
          (last-result (gethash name results))
          (index-base 0)
-         result-index result-value)
+         (cur-result result)
+         result-index result-value error-p)
     (loop
       (restart-case
-          (loop for val in result
+          (loop for val in cur-result
                 for prev in last-result
                 for i from 0
                 do (unless (result-equalp val prev)
@@ -69,18 +70,23 @@
                                             :result-value val
                                             :last-value prev)))
                 finally
-                   (setf (gethash name results) result)
+                   (unless error-p
+                     (setf (gethash name results) result))
                    (return-from verify-result result))
         (use-new-value ()
           :report "The new value is correct, use it from now on."
           :test (lambda (c) (typep c 'result-error))
-          (setf (nth result-index last-result) result-value))
+          (incf index-base (1+ result-index))
+          (setf (nth result-index last-result) result-value)
+          (setf cur-result (nthcdr (1+ result-index) cur-result))
+          (setf last-result (nthcdr (1+ result-index) last-result)))
         (skip-test ()
           :report "Skip this, leaving the old value, but continue testing"
           :test (lambda (c) (typep c 'result-error))
           (incf index-base (1+ result-index))
-          (setf result (nthcdr (1+ result-index) result))
-          (setf last-result (nthcdr (1+ result-index) last-result)))))))
+          (setf cur-result (nthcdr (1+ result-index) cur-result))
+          (setf last-result (nthcdr (1+ result-index) last-result))
+          (setf error-p t))))))
 
 (defmacro check ((&key name (category :default)) &body body)
   (let ((fun (gensym))
