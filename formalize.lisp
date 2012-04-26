@@ -20,7 +20,7 @@
                 (last-result (gethash ,name (package-tests-results tests))))
            (loop for val in result
                  as prev in last-result
-                 do (5am:is (equalp last-result result)))))
+                 do (5am:is (result-equalp last-result result)))))
        (unless *formal-testing-only*
          (values-list (run ,name))))))
 

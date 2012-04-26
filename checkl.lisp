@@ -18,6 +18,11 @@
                      (result-error-value c)
                      (result-error-last c)))))
 
+(defgeneric result-equalp (o1 o2))
+
+(defmethod result-equalp (o1 o2)
+  (equalp o1 o2))
+
 (defun current-tests ()
   (or (gethash *package* *all-tests*)
       (setf (gethash *package* *all-tests*)
@@ -55,7 +60,7 @@
           (loop for val in result
                 for prev in last-result
                 for i from 0
-                do (unless (equalp val prev)
+                do (unless (result-equalp val prev)
                      (setf result-index i)
                      (setf result-value val)
                      (error (make-condition 'result-error
@@ -68,7 +73,12 @@
         (use-new-value ()
           :report "The new value is correct, use it from now on."
           :test (lambda (c) (typep c 'result-error))
-          (setf (nth result-index last-result) result-value))))))
+          (setf (nth result-index last-result) result-value))
+        (skip-test ()
+          :report "Skip this, leaving the old value, but continue testing"
+          :test (lambda (c) (typep c 'result-error))
+          (setf result (nthcdr result-index result))
+          (setf last-result (nthcdr result-index last-result)))))))
 
 (defmacro check ((&key name (category :default)) &body body)
   (let ((fun (gensym))

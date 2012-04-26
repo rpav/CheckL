@@ -51,8 +51,10 @@ something like this, evaluating it and manually checking the result:
 
 With CheckL, you don't really have to change much.  Your `PROGN`
 becomes a `CHECK ()` and you run it.  CheckL notifies you if something
-changes!  (Results are compared with `EQUALP`.  This will probably be
-made into a generic function defaulting to `EQUALP` in the future.)
+changes!
+
+Results are compared with `CHECKL:RESULT-EQUALP`.  This defaults to
+`CL:EQUALP`.  Defining it for other things may be useful.
 
 If you make changes to the test, it becomes another test:
 
