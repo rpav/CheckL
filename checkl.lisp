@@ -111,7 +111,6 @@
           appending (gethash cat current-categories) into names
           finally (return (apply #'run names)))))
 
-#+marshal
 (defun checkl-store (&optional filespec)
   (let ((filespec (or filespec (package-tests-default-checkl-store (current-tests))))
         (results (package-tests-results (current-tests))))
@@ -122,19 +121,33 @@
         (write (ms:marshal results) :stream stream)))
     (values)))
 
-#+marshal
 (defun checkl-load (&optional filespec)
   (let* ((tests (current-tests))
          (filespec (or filespec (package-tests-default-checkl-store tests))))
     (with-open-file (stream filespec)
       (setf (package-tests-results tests) (ms:unmarshal (read stream))))))
 
-#-marshal
-(defun checkl-store (&optional filespec)
-  (declare (ignore filespec))
-  (error "You must load CL-MARSHAL before CheckL for CHECK-STORE and CHECK-LOAD"))
+(defmacro do-categories ((var tests) &body body)
+  `(map 'nil
+        (lambda (,var) ,@body)
+        (loop for k being the hash-keys of (package-tests-categories ,tests)
+              collect k)))
 
-#-marshal
-(defun checkl-load (&optional filespec)
-  (declare (ignore filespec))
-  (error "You must load CL-MARSHAL before CheckL for CHECK-STORE and CHECK-LOAD"))
+(defun clear (&rest names)
+  (let ((tests (current-tests)))
+    (loop for name in names do
+      (remhash name (package-tests-results tests))
+      (remhash name (package-tests-lambdas tests))
+      (do-categories (c tests)
+        (setf (gethash c (package-tests-categories tests))
+              (delete name (gethash c (package-tests-categories tests))))))))
+
+(defun clear-anonymous ()
+  (let ((tests (current-tests)))
+    (loop for name being the hash-keys of (package-tests-results tests) do
+      (when (not (symbolp name))
+        (remhash name (package-tests-results tests))
+        (remhash name (package-tests-lambdas tests))
+        (do-categories (c tests)
+          (setf (gethash c (package-tests-categories tests))
+                (delete name (gethash c (package-tests-categories tests)))))))))
