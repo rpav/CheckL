@@ -57,6 +57,12 @@ changes!
 Results are compared with `CHECKL:RESULT-EQUALP`.  This defaults to
 `CL:EQUALP`.  Defining it for other things may be useful.
 
+For very long values, it may be helpful to print them:
+
+```
+(check (:output-p t) (some-very-long-result)) => ...
+```
+
 If you make changes to the test, it becomes another test:
 
 ```

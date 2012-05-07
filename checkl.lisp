@@ -88,7 +88,7 @@
           (setf last-result (nthcdr (1+ result-index) last-result))
           (setf error-p t))))))
 
-(defmacro check ((&key name (category :default)) &body body)
+(defmacro check ((&key name (category :default) (output-p nil)) &body body)
   (let ((fun (gensym))
         (result (gensym))
         (namesym (gensym))
@@ -100,7 +100,11 @@
             (,fun (lambda () ,@body))
             (,result (multiple-value-list (funcall ,fun))))
        (ensure-test ,namesym ,catsym ,bodysym ,fun)
-       (values-list (verify-result (or ,namesym ,bodysym) ,result)))))
+       (let ((result-list (verify-result (or ,namesym ,bodysym) ,result)))
+         ,(when output-p
+            `(loop for result in result-list do
+              (pprint result)))
+         (values-list result-list)))))
 
 (defun run (&rest names)
   (let ((lambdas (package-tests-lambdas (current-tests))))
