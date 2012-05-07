@@ -18,7 +18,9 @@
                      (result-error-value c)
                      (result-error-last c)))))
 
-(defgeneric result-equalp (o1 o2))
+(defgeneric result-equalp (o1 o2)
+  (:documentation "Generic function to compare test results `O1` to
+`O2`.  Defaults to `EQUALP`."))
 
 (defmethod result-equalp (o1 o2)
   (equalp o1 o2))
@@ -89,6 +91,22 @@
           (setf error-p t))))))
 
 (defmacro check ((&key name (category :default) (output-p nil)) &body body)
+  "=> test-results
+
+Run `BODY`.  Check resulting values against the last run using
+`CHECKL:RESULT-EQUALP`, or store them if this is the first run.
+Sameness of the test is determined by comparing the body with
+`EQUALP`, or by `NAME`.
+
+`NAME` may be specified to name a test.  If the test exists but is
+anonymous (i.e., `NAME` has not been specified), specifying `NAME`
+will name the test and it will no longer be anonymous.
+
+`CATEGORY` may be specified for running groups of tests.
+
+If `OUTPUT-P` is `t`, the results will be printed to
+`*standard-output*` as well as returned.  This may be helpful if the
+results are too long to see in your emacs minibuffer."
   (let ((fun (gensym))
         (result (gensym))
         (namesym (gensym))
@@ -107,6 +125,9 @@
          (values-list result-list)))))
 
 (defun run (&rest names)
+  "=> test-results
+
+Run tests named `NAMES`, collecting their results."
   (let ((lambdas (package-tests-lambdas (current-tests))))
     (loop for name in names
           as fn = (gethash name lambdas)
@@ -115,6 +136,9 @@
           finally (return (values-list results)))))
 
 (defun run-all (&optional (category :default) &rest categories)
+  "=> test-results
+
+Run all tests, optionally specifying categories."
   (push category categories)
   (let ((current-categories (package-tests-categories (current-tests))))
     (loop for cat in categories
@@ -122,6 +146,7 @@
           finally (return (apply #'run names)))))
 
 (defun checkl-store (&optional filespec)
+  "Store package test results to `FILESPEC`"
   (let ((filespec (or filespec (package-tests-default-checkl-store (current-tests))))
         (results (package-tests-results (current-tests))))
     (unless (> (hash-table-count results) 0)
@@ -132,6 +157,7 @@
     (values)))
 
 (defun checkl-load (&optional filespec)
+  "Load package test results from `FILESPEC`"
   (let* ((tests (current-tests))
          (filespec (or filespec (package-tests-default-checkl-store tests))))
     (with-open-file (stream filespec)
@@ -144,6 +170,8 @@
               collect k)))
 
 (defun clear (&rest names)
+  "Clear the test results from the tests `NAMES`.  For clearing anonymous
+test results, see `CLEAR-ANONYMOUS`."
   (let ((tests (current-tests)))
     (loop for name in names do
       (remhash name (package-tests-results tests))
@@ -153,6 +181,7 @@
               (delete name (gethash c (package-tests-categories tests))))))))
 
 (defun clear-anonymous ()
+  "Clear anonymous test results.  For clearing named tests, see `CLEAR`."
   (let ((tests (current-tests)))
     (loop for name being the hash-keys of (package-tests-results tests) do
       (when (not (symbolp name))
@@ -161,3 +190,15 @@
         (do-categories (c tests)
           (setf (gethash c (package-tests-categories tests))
                 (delete name (gethash c (package-tests-categories tests)))))))))
+
+(defmacro check-output (&body body)
+  "Use this within a `CHECK` block.  Rebind `*standard-output*` and
+`*error-output*` and return a `CHECK`-able result."
+  (let ((so (gensym)) (se (gensym)))
+    `(let* ((,so (make-string-output-stream))
+            (,se (make-string-output-stream))
+            (*standard-output* ,so)
+            (*error-output* ,se))
+       ,@body
+       (list (get-output-stream-string ,so)
+             (get-output-stream-string ,se)))))

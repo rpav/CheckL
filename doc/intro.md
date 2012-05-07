@@ -236,13 +236,3 @@ Things of note:
   `ASDF:PERFORM` method for system to either run tests, or load
   another system and call `TEST-OP` on *it*.  If you're doing the
   latter, you need both definitions.
-
-# Reference
-
-[See here for reference](http://rpav.github.com/CheckL/).
-
-# Etc
-
-I've been using this a bit and have added some conveniences.  There
-could certainly be more.  Suggestions welcome, theoretical or
-otherwise.
