@@ -1,0 +1,357 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<head>
+  <title>GenDoc Documentation
+  </title>
+  <link rel='stylesheet' type='text/css' href='simple.css' />
+</head>
+<html>
+
+<h1>CheckL</h1>
+
+<p>Why write programs in Common Lisp but tests like Java?</p>
+
+<p>My workflow for writing Common Lisp tends to be like this:</p>
+
+<ul>
+<li>Write a bit of lisp, perhaps a function, class, or structure</li>
+<li>Write a snippet in a scratch buffer to test</li>
+<li>Fix if necessary and repeat</li>
+</ul>
+
+<p>Testing is already inherent in this process, all we need is a little
+bit of Common Lisp magic to take advantage of it.  Thus, CheckL:</p>
+
+<pre><code>(defun foo ()
+  (+ 1 1))
+
+(check () (foo)) ;; => 2
+
+(defun foo ()
+  (+ 1 2))
+
+(check () (foo))
+
+    |
+    v
+
+Result 0 has changed: 3
+Previous result: 2
+   [Condition of type CHECKL::RESULT-ERROR]
+
+Restarts:
+ 0: [USE-NEW-VALUE] The new value is correct, use it from now on.
+ 1: [SKIP-TEST] Skip this, leaving the old value, but continue testing
+ 2: [RETRY] Retry SLIME interactive evaluation request.
+ 3: [*ABORT] Return to SLIME's top level.
+ 4: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)</code></pre>
+
+<h1>Usage</h1>
+
+<h2>Tests</h2>
+
+<p>Presumably you already write code to test.  Possibly you even write
+something like this, evaluating it and manually checking the result:</p>
+
+<pre><code>(progn
+  (function-1 ...)
+  (function-2 ...))</code></pre>
+
+<p>With CheckL, you don't really have to change much.  Your <code>PROGN</code>
+becomes a <code>CHECK ()</code> and you run it.  CheckL notifies you if something
+changes!</p>
+
+<p>Results are compared with <code>CHECKL:RESULT-EQUALP</code>.  This defaults to
+<code>CL:EQUALP</code>.  Defining it for other things may be useful.</p>
+
+<p>For very long values, it may be helpful to print them:</p>
+
+<pre><code>(check (:output-p t) (some-very-long-result)) => ...</code></pre>
+
+<p>If you make changes to the test, it becomes another test:</p>
+
+<pre><code>(defun foo () (+ 1 1))
+(check () (foo))      ;; => 2
+(check () (1- (foo))) ;; => 1</code></pre>
+
+<p>However, if you name it before you change it, it'll always compare
+against the same list:</p>
+
+<pre><code>(check () (foo)) ;; => 2
+
+(defun foo () (+ 1 3))
+
+(check (:name :two) (foo)) ;; => Error!</code></pre>
+
+<p>In this case, the old &quot;anonymous&quot; test (actually identified by the
+body of the test) is now named <code>:two</code>.  Making changes to the test
+will alter the same test, now named <code>:two</code>, and compare against prior
+results.</p>
+
+<p>Finally, you might want to check more than one thing in a single
+<code>CHECK</code>.  You can do this with <code>VALUES</code> (or variants):</p>
+
+<pre><code>(defun foo () (+ 1 1)
+(defun bar () (- 1 1))
+
+(check (:name :two)
+  (values (foo) (bar))) ;; => 2, 0
+
+(defun bar () (foo))
+
+(check (:name :two)
+  (values (foo) (bar))) ;; => Error!</code></pre>
+
+<p>Or, if you want to run one or more tests:</p>
+
+<pre><code>(run :two ...)</code></pre>
+
+<h2>Categories</h2>
+
+<p>So you've been writing a bunch of little tests and want to run them
+all and see if anything has changed:</p>
+
+<pre><code>(run-all)</code></pre>
+
+<p>Easy!  And you haven't had to specifically declare it so in three
+places.  However maybe you want a bit more structure and split up your
+tests when you run them all.  Thus categories:</p>
+
+<pre><code>(check (:name :foo :category :some-category) ...)
+
+(run-all :some-category ...)</code></pre>
+
+<p>The default category is perhaps unsurprisingly called <code>:default</code>.
+That's pretty much all there is to categories.</p>
+
+<h2>Remembering results</h2>
+
+<p>Since we're not <em>manually</em> defining the result, it would be
+unfortunate if we <em>happened</em> to quit our lisp while our code still had
+a bug, and then weren't sure what it was.  Easy enough:</p>
+
+<pre><code>(checkl-store "some-file")
+;;; - later -
+(checkl-load "some-file)</code></pre>
+
+<p>This uses <code>cl-marshal</code> and <code>WRITE</code> to write values to the file
+(overwriting it entirely).  <code>*PRINT-READABLY*</code> is forced to <code>t</code>, but
+you can otherwise customize the output as per <code>WRITE</code>.</p>
+
+<p>Along with revision control, it should be easy to keep track of test
+results and make modifications.</p>
+
+<h2>Formalizing</h2>
+
+<p>This is not meant to be a complete replacement for test suites such as
+FiveAM, but more of a &quot;deformalization&quot;.</p>
+
+<p>But once you've worked on a bit of code and have your buffer cluttered
+with <code>(check (...) ...)</code> forms, you probably don't want to rewrite
+them all as FiveAM constructs.  It'd be nice if you could just sortof
+integrate them all with minimal effort, like this:</p>
+
+<pre><code>;; 5am doesn't have a find-suite, so you have to do this:
+(defsuite :default)
+
+(check-formal (:name :two) (foo))</code></pre>
+
+<p>Well, assuming you had FiveAM loaded before you loaded CheckL, this is
+exactly what you do.  (I didn't want FiveAM to be a strict
+dependency.)  Now you can do one of these, and they still do what they
+should:</p>
+
+<pre><code>(5am:run! :default) ;; => Pretty dots, one per VALUE
+(run-all :default)  ;; => 2</code></pre>
+
+<p>We've gone from <em>very</em> informal testing to having things in FiveAM
+with minimal effort!</p>
+
+<p>Note that you can <em>still</em> eval the <code>CHECK-FORMAL</code> block in your buffer
+and it behaves just like a <code>CHECK</code> block, returning its values and
+signaling a condition if they change.</p>
+
+<h2>ASDF</h2>
+
+<p>Wouldn't it be nice if ASDF loaded your saved CheckL values, and let
+you call your newly-created FiveAM tests with minimal effort?  Of
+course!</p>
+
+<pre><code>(cl:eval-when (:load-toplevel :execute)
+  (asdf:load-system :fiveam)
+  (asdf:load-system :checkl))
+
+(defsystem :my-system
+  :description "A brand new system"
+  ...)
+
+(defsystem :my-system-tests
+  :description "A system that tests"
+  
+  :depends-on (:fiveam :checkl)
+  :serial t
+  :pathname "t"
+
+  :components ((:file "package")
+               (checkl:tests "some-test")
+               (checkl:test-values "test-values"
+                                   :package :my-system-tests)))
+
+(checkl:define-test-op :my-system :my-system-test)
+(checkl:define-test-op :my-system-test)</code></pre>
+
+<p>That's all!  No long <code>PERFORM</code> definitions.  Just make sure to have
+the <code>EVAL-WHEN</code> at the top.  Now you can do this:</p>
+
+<pre><code>(asdf:load-system :my-system)
+(asdf:test-system :my-system) ;; => (5am:run! :default)</code></pre>
+
+<p>Things of note:</p>
+
+<ul>
+<li><p>New ASDF component: <code>CHECK:TESTS</code> loads a file with <code>CHECK-FORMAL</code>
+  tests, but does <em>not</em> run them.</p></li>
+<li><p>New ASDF component: <code>CHECK:TEST-VALUES</code> loads a file with test
+  values.  It also sets the path to be the <em>default</em> for test values,
+  so you can simply do <code>(checkl-store)</code> or <code>(checkl-load)</code>.</p></li>
+<li><p><code>define-test-op SYSTEM &amp;optional OTHER-SYSTEM</code>: This sets up the
+  <code>ASDF:PERFORM</code> method for system to either run tests, or load
+  another system and call <code>TEST-OP</code> on <em>it</em>.  If you're doing the
+  latter, you need both definitions.</p></li>
+</ul>
+
+<a name='REFERENCE-CHECKL'></a>
+<h1>
+  Reference: CHECKL
+</h1>
+<h2>
+  Functions
+</h2>
+<a name='CHECKL-LOAD' class='apiref-row'></a>
+<div class='apiref-spec'>CHECKL-LOAD
+</div>
+<div class='apiref-lambda'>(&OPTIONAL FILESPEC)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Load package test results from <code>FILESPEC</code></p>
+
+</div>
+<a name='CHECKL-STORE' class='apiref-row'></a>
+<div class='apiref-spec'>CHECKL-STORE
+</div>
+<div class='apiref-lambda'>(&OPTIONAL FILESPEC)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Store package test results to <code>FILESPEC</code></p>
+
+</div>
+<a name='CLEAR' class='apiref-row'></a>
+<div class='apiref-spec'>CLEAR
+</div>
+<div class='apiref-lambda'>(&REST NAMES)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Clear the test results from the tests <code>NAMES</code>.  For clearing anonymous
+test results, see <code>CLEAR-ANONYMOUS</code>.</p>
+
+</div>
+<a name='CLEAR-ANONYMOUS' class='apiref-row'></a>
+<div class='apiref-spec'>CLEAR-ANONYMOUS
+</div>
+<div class='apiref-lambda'>()
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Clear anonymous test results.  For clearing named tests, see <code>CLEAR</code>.</p>
+
+</div>
+<a name='RESULT-EQUALP' class='apiref-row'></a>
+<div class='apiref-spec'>RESULT-EQUALP
+</div>
+<div class='apiref-lambda'>(O1 O2)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Generic function to compare test results <code>O1</code> to
+<code>O2</code>.  Defaults to <code>EQUALP</code>.</p>
+
+</div>
+<a name='RUN' class='apiref-row'></a>
+<div class='apiref-spec'>RUN
+</div>
+<div class='apiref-lambda'>(&REST NAMES)
+</div>
+<div class='apiref-result'>=> test-results
+</div>
+<div class='apiref-doc'>
+
+<p>Run tests named <code>NAMES</code>, collecting their results.</p>
+
+</div>
+<a name='RUN-ALL' class='apiref-row'></a>
+<div class='apiref-spec'>RUN-ALL
+</div>
+<div class='apiref-lambda'>(&OPTIONAL (CATEGORY :DEFAULT) &REST CATEGORIES)
+</div>
+<div class='apiref-result'>=> test-results
+</div>
+<div class='apiref-doc'>
+
+<p>Run all tests, optionally specifying categories.</p>
+
+</div>
+<h2>
+  Macros
+</h2>
+<a name='CHECK' class='apiref-row'></a>
+<div class='apiref-spec'>CHECK
+</div>
+<div class='apiref-lambda'>((&KEY NAME (CATEGORY :DEFAULT) (OUTPUT-P NIL)) &BODY BODY)
+</div>
+<div class='apiref-result'>=> test-results
+</div>
+<div class='apiref-doc'>
+
+<p>Run <code>BODY</code>.  Check resulting values against the last run using
+<code>CHECKL:RESULT-EQUALP</code>, or store them if this is the first run.
+Sameness of the test is determined by comparing the body with
+<code>EQUALP</code>, or by <code>NAME</code>.</p>
+
+<p><code>NAME</code> may be specified to name a test.  If the test exists but is
+anonymous (i.e., <code>NAME</code> has not been specified), specifying <code>NAME</code>
+will name the test and it will no longer be anonymous.</p>
+
+<p><code>CATEGORY</code> may be specified for running groups of tests.</p>
+
+<p>If <code>OUTPUT-P</code> is <code>t</code>, the results will be printed to
+<code>*standard-output*</code> as well as returned.  This may be helpful if the
+results are too long to see in your emacs minibuffer.</p>
+
+</div>
+<a name='CHECK-OUTPUT' class='apiref-row'></a>
+<div class='apiref-spec'>CHECK-OUTPUT
+</div>
+<div class='apiref-lambda'>(&BODY BODY)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>Use this within a <code>CHECK</code> block.  Rebind <code>*standard-output*</code> and
+<code>*error-output*</code> and return a <code>CHECK</code>-able result.</p>
+
+</div>
+</html>
