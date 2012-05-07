@@ -73,7 +73,8 @@
                                             :last-value prev)))
                 finally
                    (unless error-p
-                     (setf (gethash name results) result))
+                     (setf (gethash name results)
+                           (ms:unmarshal (ms:marshal result))))
                    (return-from verify-result result))
         (use-new-value ()
           :report "The new value is correct, use it from now on."

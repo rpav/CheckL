@@ -109,6 +109,27 @@ Or, if you want to run one or more tests:
 (run :two ...)
 ```
 
+## Objects
+
+Unlike structures, two class instances are not `EQUALP` if they have
+the same class and their slots are `EQUALP`.  Therefore, you must
+define `CHECKL:RESULT-EQUALP` if you are checking objects, or check
+only slot values.  The former is likely more convenient.
+
+**Note:** CheckL now uses marshal to make a deep copy of results.
+Before, modifying result objects (e.g., changing slots you check,
+altering arrays, etc) would break test results.  Bad!  Now deep copies
+are made.
+
+However, by default, marshal does not copy anything for objects, and
+`NIL` is always stored.  You must define `ms:class-persistent-slots`
+to specialize on your class and return a list of slots to serialize.
+Pretty simple.  [See the documentation for
+`cl-marshal`](https://github.com/wlbr/cl-marshal) for more details.
+
+Note that for the purposes of CheckL, you only need to store slots
+that `RESULT-EQUALP` cares about.  If you define more, that's fine.
+
 ## Categories
 
 So you've been writing a bunch of little tests and want to run them
@@ -236,3 +257,9 @@ Things of note:
   `ASDF:PERFORM` method for system to either run tests, or load
   another system and call `TEST-OP` on *it*.  If you're doing the
   latter, you need both definitions.
+
+# Etc
+
+I've been using this a bit and have added some conveniences.  There
+could certainly be more.  Suggestions welcome, theoretical or
+otherwise.
