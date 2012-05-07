@@ -106,6 +106,27 @@ results.</p>
 
 <pre><code>(run :two ...)</code></pre>
 
+<h2>Objects</h2>
+
+<p>Unlike structures, two class instances are not <code>EQUALP</code> if they have
+the same class and their slots are <code>EQUALP</code>.  Therefore, you must
+define <code>CHECKL:RESULT-EQUALP</code> if you are checking objects, or check
+only slot values.  The former is likely more convenient.</p>
+
+<p><strong>Note:</strong> CheckL now uses marshal to make a deep copy of results.
+Before, modifying result objects (e.g., changing slots you check,
+altering arrays, etc) would break test results.  Bad!  Now deep copies
+are made.</p>
+
+<p>However, by default, marshal does not copy anything for objects, and
+<code>NIL</code> is always stored.  You must define <code>ms:class-persistent-slots</code>
+to specialize on your class and return a list of slots to serialize.
+Pretty simple.  <a href="https://github.com/wlbr/cl-marshal" >See the documentation for
+<code>cl-marshal</code></a> for more details.</p>
+
+<p>Note that for the purposes of CheckL, you only need to store slots
+that <code>RESULT-EQUALP</code> cares about.  If you define more, that's fine.</p>
+
 <h2>Categories</h2>
 
 <p>So you've been writing a bunch of little tests and want to run them
@@ -219,6 +240,12 @@ the <code>EVAL-WHEN</code> at the top.  Now you can do this:</p>
   another system and call <code>TEST-OP</code> on <em>it</em>.  If you're doing the
   latter, you need both definitions.</p></li>
 </ul>
+
+<h1>Etc</h1>
+
+<p>I've been using this a bit and have added some conveniences.  There
+could certainly be more.  Suggestions welcome, theoretical or
+otherwise.</p>
 
 <a name='REFERENCE-CHECKL'></a>
 <h1>
