@@ -136,7 +136,6 @@ results are too long to see in your emacs minibuffer."
             (,bodysym ',body)
             (,fun (lambda () ,@body))
             (,result (multiple-value-list (funcall ,fun))))
-       (:say "result is ~A" ,result)
        (ensure-test ,namesym ,catsym ,bodysym ,fun)
        (let ((result-list (verify-result (or ,namesym ,bodysym) ,result)))
          ,(when output-p
