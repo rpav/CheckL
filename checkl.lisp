@@ -25,6 +25,25 @@
 (defmethod result-equalp (o1 o2)
   (equalp o1 o2))
 
+(defgeneric result-translate (result)
+  (:documentation "RESULT-TRANSLATE is called on RESULT before calling
+RESULT-EQUALP and before storing RESULT.  This defaults to RESULT, but
+may be useful for converting more complex objects into simpler
+objects.  For sequences and structures, COPY-SEQ and COPY-STRUCTURE
+are called.  For STANDARD-OBJECT instances, (MS:UNMARSHAL (MS:MARSHAL
+OBJECT)) is called."))
+
+(defmethod result-translate (result) result)
+
+(defmethod result-translate ((result sequence))
+  (copy-seq result))
+
+(defmethod result-translate ((result structure-object))
+  (copy-structure result))
+
+(defmethod result-translate ((result standard-object))
+  (ms:unmarshal (ms:marshal result)))
+
 (defun current-tests ()
   (or (gethash *package* *all-tests*)
       (setf (gethash *package* *all-tests*)
@@ -73,8 +92,7 @@
                                             :last-value prev)))
                 finally
                    (unless error-p
-                     (setf (gethash name results)
-                           (ms:unmarshal (ms:marshal result))))
+                     (setf (gethash name results) result))
                    (return-from verify-result result))
         (use-new-value ()
           :report "The new value is correct, use it from now on."
@@ -118,6 +136,7 @@ results are too long to see in your emacs minibuffer."
             (,bodysym ',body)
             (,fun (lambda () ,@body))
             (,result (multiple-value-list (funcall ,fun))))
+       (:say "result is ~A" ,result)
        (ensure-test ,namesym ,catsym ,bodysym ,fun)
        (let ((result-list (verify-result (or ,namesym ,bodysym) ,result)))
          ,(when output-p
@@ -203,3 +222,13 @@ test results, see `CLEAR-ANONYMOUS`."
        ,@body
        (list (get-output-stream-string ,so)
              (get-output-stream-string ,se)))))
+
+(defmacro results (&rest values)
+  "=> VALUES
+
+This will evaluate each subform in order and call RESULT-TRANSLATE on
+the result.  This is especially useful if subforms repeatedly modify
+and return the object, e.g. `(results (incf *x*) (incf *x*))`"
+  `(values
+    ,@(mapcar (lambda (x) `(checkl:result-translate ,x))
+              values)))

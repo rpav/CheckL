@@ -11,7 +11,7 @@ My workflow for writing Common Lisp tends to be like this:
 Testing is already inherent in this process, all we need is a little
 bit of Common Lisp magic to take advantage of it.  Thus, CheckL:
 
-```
+```lisp
 (defun foo ()
   (+ 1 1))
 
@@ -22,19 +22,19 @@ bit of Common Lisp magic to take advantage of it.  Thus, CheckL:
 
 (check () (foo))
 
-    |
-    v
-
-Result 0 has changed: 3
-Previous result: 2
-   [Condition of type CHECKL::RESULT-ERROR]
-
-Restarts:
- 0: [USE-NEW-VALUE] The new value is correct, use it from now on.
- 1: [SKIP-TEST] Skip this, leaving the old value, but continue testing
- 2: [RETRY] Retry SLIME interactive evaluation request.
- 3: [*ABORT] Return to SLIME's top level.
- 4: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)
+;     |
+;     v
+; 
+; Result 0 has changed: 3
+; Previous result: 2
+;    [Condition of type CHECKL::RESULT-ERROR]
+; 
+; Restarts:
+;  0: [USE-NEW-VALUE] The new value is correct, use it from now on.
+;  1: [SKIP-TEST] Skip this, leaving the old value, but continue testing
+;  2: [RETRY] Retry SLIME interactive evaluation request.
+;  3: [*ABORT] Return to SLIME's top level.
+;  4: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)
 ```
 
 # Usage
@@ -44,7 +44,7 @@ Restarts:
 Presumably you already write code to test.  Possibly you even write
 something like this, evaluating it and manually checking the result:
 
-```
+```lisp
 (progn
   (function-1 ...)
   (function-2 ...))
@@ -59,13 +59,13 @@ Results are compared with `CHECKL:RESULT-EQUALP`.  This defaults to
 
 For very long values, it may be helpful to print them:
 
-```
+```lisp
 (check (:output-p t) (some-very-long-result)) => ...
 ```
 
 If you make changes to the test, it becomes another test:
 
-```
+```lisp
 (defun foo () (+ 1 1))
 (check () (foo))      ;; => 2
 (check () (1- (foo))) ;; => 1
@@ -74,7 +74,7 @@ If you make changes to the test, it becomes another test:
 However, if you name it before you change it, it'll always compare
 against the same list:
 
-```
+```lisp
 (check () (foo)) ;; => 2
 
 (defun foo () (+ 1 3))
@@ -88,54 +88,97 @@ will alter the same test, now named `:two`, and compare against prior
 results.
 
 Finally, you might want to check more than one thing in a single
-`CHECK`.  You can do this with `VALUES` (or variants):
+`CHECK`.  You can do this with `RESULTS` (which is similar but not
+identical to `VALUES`; see below):
 
-```
+```lisp
 (defun foo () (+ 1 1)
 (defun bar () (- 1 1))
 
 (check (:name :two)
-  (values (foo) (bar))) ;; => 2, 0
+  (results (foo) (bar))) ;; => 2, 0
 
 (defun bar () (foo))
 
 (check (:name :two)
-  (values (foo) (bar))) ;; => Error!
+  (results (foo) (bar))) ;; => Error!
 ```
 
 Or, if you want to run one or more tests:
 
-```
+```lisp
 (run :two ...)
 ```
 
-## Objects
+## Results
 
-Unlike structures, two class instances are not `EQUALP` if they have
-the same class and their slots are `EQUALP`.  Therefore, you must
-define `CHECKL:RESULT-EQUALP` if you are checking objects, or check
-only slot values.  The former is likely more convenient.
+`RESULTS` is much like `VALUES`; in fact, you can use `VALUES` instead
+of `RESULTS`.  However, `RESULTS` calls `RESULT-TRANSLATE` on each
+form as it occurs.  By default, this copies structures and sequences,
+and marshals/unmarshals standard-objects.
 
-**Note:** CheckL now uses marshal to make a deep copy of results.
-Before, modifying result objects (e.g., changing slots you check,
-altering arrays, etc) would break test results.  Bad!  Now deep copies
-are made.
+With `VALUES`, the following will likely not be what you want:
 
-However, by default, marshal does not copy anything for objects, and
-`NIL` is always stored.  You must define `ms:class-persistent-slots`
-to specialize on your class and return a list of slots to serialize.
-Pretty simple.  [See the documentation for
+```lisp
+(defstruct thing (x 0))
+
+(defun incr-thing (thing)
+  (incf (thing-x thing))
+  thing)
+
+(check (:name :incr-thing)
+  (let ((thing (make-thing)))
+    (values
+      thing
+      (incr-thing thing)
+      (incr-thing thing))))
+
+      ;; => #S(.. 2), #S(.. 2), #S(.. 2)
+```
+
+However, with `RESULTS`, we get a copy each time:
+
+```lisp
+(check (:name :incr-thing)
+  (let ((thing (make-thing)))
+    (results
+      thing
+      (incr-thing thing)
+      (incr-thing thing))))
+
+      ;; => #S(.. 0), #S(.. 1), #S(.. 2)
+```
+
+Additionally, it can be very useful to override `RESULT-TRANSLATE`,
+especially for complex objects:
+
+```lisp
+(defmethod checkl:result-translate ((thing thing))
+  (thing-x thing))
+
+(run :incr-thing) ;; => 0, 1, 2
+```
+
+This can be useful for checking selected values of deeply-nested
+structures and objects.
+      
+## standard-object
+
+Another option for standard-object instances is to implement
+`ms:class-persistant-slots` (sic).  `RESULT-TRANSLATE` calls
+`marshal`/`unmarshal` on objects by default, which makes a copy,
+if this method is defined.
+
+This method must merely return a list of slot names, and is trivial to
+implement.  [See the documentation for
 `cl-marshal`](https://github.com/wlbr/cl-marshal) for more details.
-
-Note that for the purposes of CheckL, you only need to store slots
-that `RESULT-EQUALP` cares about.  If you define more, that's fine.
 
 ## Categories
 
 So you've been writing a bunch of little tests and want to run them
 all and see if anything has changed:
 
-```
+```lisp
 (run-all)
 ```
 
@@ -143,7 +186,7 @@ Easy!  And you haven't had to specifically declare it so in three
 places.  However maybe you want a bit more structure and split up your
 tests when you run them all.  Thus categories:
 
-```
+```lisp
 (check (:name :foo :category :some-category) ...)
 
 (run-all :some-category ...)
@@ -158,10 +201,10 @@ Since we're not *manually* defining the result, it would be
 unfortunate if we *happened* to quit our lisp while our code still had
 a bug, and then weren't sure what it was.  Easy enough:
 
-```
+```lisp
 (checkl-store "some-file")
 ;;; - later -
-(checkl-load "some-file)
+(checkl-load "some-file")
 ```
 
 This uses `cl-marshal` and `WRITE` to write values to the file
@@ -181,7 +224,7 @@ with `(check (...) ...)` forms, you probably don't want to rewrite
 them all as FiveAM constructs.  It'd be nice if you could just sortof
 integrate them all with minimal effort, like this:
 
-```
+```lisp
 ;; 5am doesn't have a find-suite, so you have to do this:
 (defsuite :default)
 
@@ -193,7 +236,7 @@ exactly what you do.  (I didn't want FiveAM to be a strict
 dependency.)  Now you can do one of these, and they still do what they
 should:
 
-```
+```lisp
 (5am:run! :default) ;; => Pretty dots, one per VALUE
 (run-all :default)  ;; => 2
 ```
@@ -211,7 +254,7 @@ Wouldn't it be nice if ASDF loaded your saved CheckL values, and let
 you call your newly-created FiveAM tests with minimal effort?  Of
 course!
 
-```
+```lisp
 (cl:eval-when (:load-toplevel :execute)
   (asdf:load-system :fiveam)
   (asdf:load-system :checkl))
@@ -239,7 +282,7 @@ course!
 That's all!  No long `PERFORM` definitions.  Just make sure to have
 the `EVAL-WHEN` at the top.  Now you can do this:
 
-```
+```lisp
 (asdf:load-system :my-system)
 (asdf:test-system :my-system) ;; => (5am:run! :default)
 ```
