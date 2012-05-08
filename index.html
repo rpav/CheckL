@@ -22,29 +22,24 @@
 <p>Testing is already inherent in this process, all we need is a little
 bit of Common Lisp magic to take advantage of it.  Thus, CheckL:</p>
 
-<pre><code>(defun foo ()
-  (+ 1 1))
-
-(check () (foo)) ;; => 2
-
-(defun foo ()
-  (+ 1 2))
-
-(check () (foo))
-
-    |
-    v
-
-Result 0 has changed: 3
-Previous result: 2
-   [Condition of type CHECKL::RESULT-ERROR]
-
-Restarts:
- 0: [USE-NEW-VALUE] The new value is correct, use it from now on.
- 1: [SKIP-TEST] Skip this, leaving the old value, but continue testing
- 2: [RETRY] Retry SLIME interactive evaluation request.
- 3: [*ABORT] Return to SLIME's top level.
- 4: [TERMINATE-THREAD] Terminate this thread (#<THREAD "worker" RUNNING {100586AB13}>)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> foo <span class="paren2">(<span class="code"></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">+ 1 1</span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span> <span class="comment">;; =&gt; 2<br>
+</span><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> foo <span class="paren2">(<span class="code"></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">+ 1 2</span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span><br><br>
+<span class="comment">; &nbsp;&nbsp;&nbsp;&nbsp;|<br>
+</span><span class="comment">; &nbsp;&nbsp;&nbsp;&nbsp;v<br>
+</span><span class="comment">; <br>
+</span><span class="comment">; Result 0 has changed: 3<br>
+</span><span class="comment">; Previous result: 2<br>
+</span><span class="comment">; &nbsp;&nbsp;&nbsp;[Condition of type CHECKL::RESULT-ERROR]<br>
+</span><span class="comment">; <br>
+</span><span class="comment">; Restarts:<br>
+</span><span class="comment">; &nbsp;0: [USE-NEW-VALUE] The new value is correct, use it from now on.<br>
+</span><span class="comment">; &nbsp;1: [SKIP-TEST] Skip this, leaving the old value, but continue testing<br>
+</span><span class="comment">; &nbsp;2: [RETRY] Retry SLIME interactive evaluation request.<br>
+</span><span class="comment">; &nbsp;3: [*ABORT] Return to SLIME's top level.<br>
+</span><span class="comment">; &nbsp;4: [TERMINATE-THREAD] Terminate this thread (#&lt;THREAD "worker" RUNNING {100586AB13}&gt;)</span></div></code>
 
 <h1>Usage</h1>
 
@@ -53,9 +48,7 @@ Restarts:
 <p>Presumably you already write code to test.  Possibly you even write
 something like this, evaluating it and manually checking the result:</p>
 
-<pre><code>(progn
-  (function-1 ...)
-  (function-2 ...))</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">progn</span></i><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">function-1 ...</span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">function-2 ...</span>)</span></span>)</span></div></code>
 
 <p>With CheckL, you don't really have to change much.  Your <code>PROGN</code>
 becomes a <code>CHECK ()</code> and you run it.  CheckL notifies you if something
@@ -66,22 +59,21 @@ changes!</p>
 
 <p>For very long values, it may be helpful to print them:</p>
 
-<pre><code>(check (:output-p t) (some-very-long-result)) => ...</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"><span class="keyword">:output-p</span> t</span>)</span> <span class="paren2">(<span class="code">some-very-long-result</span>)</span></span>)</span> =&gt; ...</div></code>
 
 <p>If you make changes to the test, it becomes another test:</p>
 
-<pre><code>(defun foo () (+ 1 1))
-(check () (foo))      ;; => 2
-(check () (1- (foo))) ;; => 1</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> foo <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">+ 1 1</span>)</span></span>)</span><br>
+<span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">;; =&gt; 2<br>
+</span><span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">1- <span class="paren3">(<span class="code">foo</span>)</span></span>)</span></span>)</span> <span class="comment">;; =&gt; 1</span></div></code>
 
 <p>However, if you name it before you change it, it'll always compare
 against the same list:</p>
 
-<pre><code>(check () (foo)) ;; => 2
-
-(defun foo () (+ 1 3))
-
-(check (:name :two) (foo)) ;; => Error!</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span> <span class="comment">;; =&gt; 2<br>
+</span><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> foo <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">+ 1 3</span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:two</span></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span> <span class="comment">;; =&gt; Error!</span></div></code>
 
 <p>In this case, the old &quot;anonymous&quot; test (actually identified by the
 body of the test) is now named <code>:two</code>.  Making changes to the test
@@ -89,58 +81,70 @@ will alter the same test, now named <code>:two</code>, and compare against prior
 results.</p>
 
 <p>Finally, you might want to check more than one thing in a single
-<code>CHECK</code>.  You can do this with <code>VALUES</code> (or variants):</p>
+<code>CHECK</code>.  You can do this with <code>RESULTS</code> (which is similar but not
+identical to <code>VALUES</code>; see below):</p>
 
-<pre><code>(defun foo () (+ 1 1)
-(defun bar () (- 1 1))
-
-(check (:name :two)
-  (values (foo) (bar))) ;; => 2, 0
-
-(defun bar () (foo))
-
-(check (:name :two)
-  (values (foo) (bar))) ;; => Error!</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> foo <span class="paren2">(<span class="code"></span>)</span> <span class="paren2">(<span class="code">+ 1 1</span>)</span><br>
+<span class="paren2">(<span class="code"><i><span class="symbol">defun</span></i> bar <span class="paren3">(<span class="code"></span>)</span> <span class="paren3">(<span class="code">- 1 1</span>)</span></span>)</span><br><br>
+<span class="paren2">(<span class="code">check <span class="paren3">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:two</span></span>)</span><br>&nbsp;&nbsp;<span class="paren3">(<span class="code">results <span class="paren4">(<span class="code">foo</span>)</span> <span class="paren4">(<span class="code">bar</span>)</span></span>)</span></span>)</span> <span class="comment">;; =&gt; 2, 0<br>
+</span><br>
+<span class="paren2">(<span class="code"><i><span class="symbol">defun</span></i> bar <span class="paren3">(<span class="code"></span>)</span> <span class="paren3">(<span class="code">foo</span>)</span></span>)</span><br><br>
+<span class="paren2">(<span class="code">check <span class="paren3">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:two</span></span>)</span><br>&nbsp;&nbsp;<span class="paren3">(<span class="code">results <span class="paren4">(<span class="code">foo</span>)</span> <span class="paren4">(<span class="code">bar</span>)</span></span>)</span></span>)</span> <span class="comment">;; =&gt; Error!</span></span></span></div></code>
 
 <p>Or, if you want to run one or more tests:</p>
 
-<pre><code>(run :two ...)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">run <span class="keyword">:two</span> ...</span>)</span></div></code>
 
-<h2>Objects</h2>
+<h2>Results</h2>
 
-<p>Unlike structures, two class instances are not <code>EQUALP</code> if they have
-the same class and their slots are <code>EQUALP</code>.  Therefore, you must
-define <code>CHECKL:RESULT-EQUALP</code> if you are checking objects, or check
-only slot values.  The former is likely more convenient.</p>
+<p><code>RESULTS</code> is much like <code>VALUES</code>; in fact, you can use <code>VALUES</code> instead
+of <code>RESULTS</code>.  However, <code>RESULTS</code> calls <code>RESULT-TRANSLATE</code> on each
+form as it occurs.  By default, this copies structures and sequences,
+and marshals/unmarshals standard-objects.</p>
 
-<p><strong>Note:</strong> CheckL now uses marshal to make a deep copy of results.
-Before, modifying result objects (e.g., changing slots you check,
-altering arrays, etc) would break test results.  Bad!  Now deep copies
-are made.</p>
+<p>With <code>VALUES</code>, the following will likely not be what you want:</p>
 
-<p>However, by default, marshal does not copy anything for objects, and
-<code>NIL</code> is always stored.  You must define <code>ms:class-persistent-slots</code>
-to specialize on your class and return a list of slots to serialize.
-Pretty simple.  <a href="https://github.com/wlbr/cl-marshal" >See the documentation for
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">defstruct</span></i> thing <span class="paren2">(<span class="code">x 0</span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">defun</span></i> incr-thing <span class="paren2">(<span class="code">thing</span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">incf <span class="paren3">(<span class="code">thing-x thing</span>)</span></span>)</span><br>&nbsp;&nbsp;thing</span>)</span><br><br>
+<span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:incr-thing</span></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">thing <span class="paren5">(<span class="code">make-thing</span>)</span></span>)</span></span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren3">(<span class="code">values<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thing<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren4">(<span class="code">incr-thing thing</span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren4">(<span class="code">incr-thing thing</span>)</span></span>)</span></span>)</span></span>)</span><br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">;; =&gt; #S(.. 2), #S(.. 2), #S(.. 2)</span></div></code>
+
+<p>However, with <code>RESULTS</code>, we get a copy each time:</p>
+
+<code><div class="codeblock"><span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:incr-thing</span></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code"><i><span class="symbol">let</span></i> <span class="paren3">(<span class="code"><span class="paren4">(<span class="code">thing <span class="paren5">(<span class="code">make-thing</span>)</span></span>)</span></span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren3">(<span class="code">results<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thing<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren4">(<span class="code">incr-thing thing</span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren4">(<span class="code">incr-thing thing</span>)</span></span>)</span></span>)</span></span>)</span><br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">;; =&gt; #S(.. 0), #S(.. 1), #S(.. 2)</span></div></code>
+
+<p>Additionally, it can be very useful to override <code>RESULT-TRANSLATE</code>,
+especially for complex objects:</p>
+
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">defmethod</span></i> checkl:result-translate <span class="paren2">(<span class="code"><span class="paren3">(<span class="code">thing thing</span>)</span></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">thing-x thing</span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code">run <span class="keyword">:incr-thing</span></span>)</span> <span class="comment">;; =&gt; 0, 1, 2</span></div></code>
+
+<p>This can be useful for checking selected values of deeply-nested
+structures and objects.</p>
+
+<h2>standard-object</h2>
+
+<p>Another option for standard-object instances is to implement
+<code>ms:class-persistant-slots</code> (sic).  <code>RESULT-TRANSLATE</code> calls
+<code>marshal</code>/<code>unmarshal</code> on objects by default, which makes a copy,
+if this method is defined.</p>
+
+<p>This method must merely return a list of slot names, and is trivial to
+implement.  <a href="https://github.com/wlbr/cl-marshal" >See the documentation for
 <code>cl-marshal</code></a> for more details.</p>
-
-<p>Note that for the purposes of CheckL, you only need to store slots
-that <code>RESULT-EQUALP</code> cares about.  If you define more, that's fine.</p>
 
 <h2>Categories</h2>
 
 <p>So you've been writing a bunch of little tests and want to run them
 all and see if anything has changed:</p>
 
-<pre><code>(run-all)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">run-all</span>)</span></div></code>
 
 <p>Easy!  And you haven't had to specifically declare it so in three
 places.  However maybe you want a bit more structure and split up your
 tests when you run them all.  Thus categories:</p>
 
-<pre><code>(check (:name :foo :category :some-category) ...)
-
-(run-all :some-category ...)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">check <span class="paren2">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:foo</span> <span class="keyword">:category</span> <span class="keyword">:some-category</span></span>)</span> ...</span>)</span><br><br>
+<span class="paren1">(<span class="code">run-all <span class="keyword">:some-category</span> ...</span>)</span></div></code>
 
 <p>The default category is perhaps unsurprisingly called <code>:default</code>.
 That's pretty much all there is to categories.</p>
@@ -151,9 +155,9 @@ That's pretty much all there is to categories.</p>
 unfortunate if we <em>happened</em> to quit our lisp while our code still had
 a bug, and then weren't sure what it was.  Easy enough:</p>
 
-<pre><code>(checkl-store "some-file")
-;;; - later -
-(checkl-load "some-file)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">checkl-store <span class="string">"some-file"</span></span>)</span><br>
+<span class="comment">;;; - later -<br>
+</span><span class="paren1">(<span class="code">checkl-load <span class="string">"some-file"</span></span>)</span></div></code>
 
 <p>This uses <code>cl-marshal</code> and <code>WRITE</code> to write values to the file
 (overwriting it entirely).  <code>*PRINT-READABLY*</code> is forced to <code>t</code>, but
@@ -172,18 +176,17 @@ with <code>(check (...) ...)</code> forms, you probably don't want to rewrite
 them all as FiveAM constructs.  It'd be nice if you could just sortof
 integrate them all with minimal effort, like this:</p>
 
-<pre><code>;; 5am doesn't have a find-suite, so you have to do this:
-(defsuite :default)
-
-(check-formal (:name :two) (foo))</code></pre>
+<code><div class="codeblock"><span class="comment">;; 5am doesn't have a find-suite, so you have to do this:<br>
+</span><span class="paren1">(<span class="code"><i><span class="symbol">defsuite</span></i> <span class="keyword">:default</span></span>)</span><br><br>
+<span class="paren1">(<span class="code">check-formal <span class="paren2">(<span class="code"><span class="keyword">:name</span> <span class="keyword">:two</span></span>)</span> <span class="paren2">(<span class="code">foo</span>)</span></span>)</span></div></code>
 
 <p>Well, assuming you had FiveAM loaded before you loaded CheckL, this is
 exactly what you do.  (I didn't want FiveAM to be a strict
 dependency.)  Now you can do one of these, and they still do what they
 should:</p>
 
-<pre><code>(5am:run! :default) ;; => Pretty dots, one per VALUE
-(run-all :default)  ;; => 2</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">5am:run! <span class="keyword">:default</span></span>)</span> <span class="comment">;; =&gt; Pretty dots, one per VALUE<br>
+</span><span class="paren1">(<span class="code">run-all <span class="keyword">:default</span></span>)</span> &nbsp;<span class="comment">;; =&gt; 2</span></div></code>
 
 <p>We've gone from <em>very</em> informal testing to having things in FiveAM
 with minimal effort!</p>
@@ -198,34 +201,17 @@ signaling a condition if they change.</p>
 you call your newly-created FiveAM tests with minimal effort?  Of
 course!</p>
 
-<pre><code>(cl:eval-when (:load-toplevel :execute)
-  (asdf:load-system :fiveam)
-  (asdf:load-system :checkl))
-
-(defsystem :my-system
-  :description "A brand new system"
-  ...)
-
-(defsystem :my-system-tests
-  :description "A system that tests"
-  
-  :depends-on (:fiveam :checkl)
-  :serial t
-  :pathname "t"
-
-  :components ((:file "package")
-               (checkl:tests "some-test")
-               (checkl:test-values "test-values"
-                                   :package :my-system-tests)))
-
-(checkl:define-test-op :my-system :my-system-test)
-(checkl:define-test-op :my-system-test)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code"><i><span class="symbol">cl:eval-when</span></i> <span class="paren2">(<span class="code"><span class="keyword">:load-toplevel</span> <span class="keyword">:execute</span></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">asdf:load-system <span class="keyword">:fiveam</span></span>)</span><br>&nbsp;&nbsp;<span class="paren2">(<span class="code">asdf:load-system <span class="keyword">:checkl</span></span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">defsystem</span></i> <span class="keyword">:my-system</span><br>&nbsp;&nbsp;<span class="keyword">:description</span> <span class="string">"A brand new system"</span><br>&nbsp;&nbsp;...</span>)</span><br><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">defsystem</span></i> <span class="keyword">:my-system-tests</span><br>&nbsp;&nbsp;<span class="keyword">:description</span> <span class="string">"A system that tests"</span><br>&nbsp;&nbsp;<br>&nbsp;&nbsp;<span class="keyword">:depends-on</span> <span class="paren2">(<span class="code"><span class="keyword">:fiveam</span> <span class="keyword">:checkl</span></span>)</span><br>&nbsp;&nbsp;<span class="keyword">:serial</span> t<br>&nbsp;&nbsp;<span class="keyword">:pathname</span> <span class="string">"t"</span><br><br>&nbsp;&nbsp;<span class="keyword">:components</span> <span class="paren2">(<span class="code"><span class="paren3">(<span class="code"><span class="keyword">:file</span> <span class="string">"package"</span></span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren3">(<span class="code">checkl:tests <span class="string">"some-test"</span></span>)</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="paren3">(<span class="code">checkl:test-values <span class="string">"test-values"</span><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">:package</span> <span class="keyword">:my-system-tests</span></span>)</span></span>)</span></span>)</span><br><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">checkl:define-test-op</span></i> <span class="keyword">:my-system</span> <span class="keyword">:my-system-test</span></span>)</span><br>
+<span class="paren1">(<span class="code"><i><span class="symbol">checkl:define-test-op</span></i> <span class="keyword">:my-system-test</span></span>)</span></div></code>
 
 <p>That's all!  No long <code>PERFORM</code> definitions.  Just make sure to have
 the <code>EVAL-WHEN</code> at the top.  Now you can do this:</p>
 
-<pre><code>(asdf:load-system :my-system)
-(asdf:test-system :my-system) ;; => (5am:run! :default)</code></pre>
+<code><div class="codeblock"><span class="paren1">(<span class="code">asdf:load-system <span class="keyword">:my-system</span></span>)</span><br>
+<span class="paren1">(<span class="code">asdf:test-system <span class="keyword">:my-system</span></span>)</span> <span class="comment">;; =&gt; (5am:run! :default)</span></div></code>
 
 <p>Things of note:</p>
 
@@ -316,6 +302,23 @@ test results, see <code>CLEAR-ANONYMOUS</code>.</p>
 <code>O2</code>.  Defaults to <code>EQUALP</code>.</p>
 
 </div>
+<a name='RESULT-TRANSLATE' class='apiref-row'></a>
+<div class='apiref-spec'>RESULT-TRANSLATE
+</div>
+<div class='apiref-lambda'>(RESULT)
+</div>
+<div class='apiref-result'>
+</div>
+<div class='apiref-doc'>
+
+<p>RESULT-TRANSLATE is called on RESULT before calling
+RESULT-EQUALP and before storing RESULT.  This defaults to RESULT, but
+may be useful for converting more complex objects into simpler
+objects.  For sequences and structures, COPY-SEQ and COPY-STRUCTURE
+are called.  For STANDARD-OBJECT instances, (MS:UNMARSHAL (MS:MARSHAL
+OBJECT)) is called.</p>
+
+</div>
 <a name='RUN' class='apiref-row'></a>
 <div class='apiref-spec'>RUN
 </div>
@@ -379,6 +382,20 @@ results are too long to see in your emacs minibuffer.</p>
 
 <p>Use this within a <code>CHECK</code> block.  Rebind <code>*standard-output*</code> and
 <code>*error-output*</code> and return a <code>CHECK</code>-able result.</p>
+
+</div>
+<a name='RESULTS' class='apiref-row'></a>
+<div class='apiref-spec'>RESULTS
+</div>
+<div class='apiref-lambda'>(&REST VALUES)
+</div>
+<div class='apiref-result'>=> VALUES
+</div>
+<div class='apiref-doc'>
+
+<p>This will evaluate each subform in order and call RESULT-TRANSLATE on
+the result.  This is especially useful if subforms repeatedly modify
+and return the object, e.g. <code>(results (incf *x*) (incf *x*))</code></p>
 
 </div>
 </html>
