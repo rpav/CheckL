@@ -7,6 +7,7 @@
   (default-checkl-store nil))
 
 (defvar *all-tests* (make-hash-table))
+(defvar *definitions-only* nil)
 
 (define-condition result-error (error)
   ((result-index :initarg :result-index :reader result-error-index :initform nil)
@@ -135,13 +136,15 @@ results are too long to see in your emacs minibuffer."
             (,catsym ,category)
             (,bodysym ',body)
             (,fun (lambda () ,@body))
-            (,result (multiple-value-list (funcall ,fun))))
+            (,result (unless *definitions-only*
+                       (multiple-value-list (funcall ,fun)))))
        (ensure-test ,namesym ,catsym ,bodysym ,fun)
-       (let ((result-list (verify-result (or ,namesym ,bodysym) ,result)))
-         ,(when output-p
-            `(loop for result in result-list do
-              (pprint result)))
-         (values-list result-list)))))
+       (unless *definitions-only*
+         (let ((result-list (verify-result (or ,namesym ,bodysym) ,result)))
+           ,(when output-p
+              `(loop for result in result-list do
+                (pprint result)))
+           (values-list result-list))))))
 
 (defun run (&rest names)
   "=> test-results
@@ -231,3 +234,15 @@ and return the object, e.g. `(results (incf *x*) (incf *x*))`"
   `(values
     ,@(mapcar (lambda (x) `(checkl:result-translate ,x))
               values)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defclass test-values (asdf:static-file)
+    ((package :accessor test-values-package :initarg :package))
+    (:documentation "An ASDF component for loading CheckL test values."))
+
+  (defclass tests (asdf:cl-source-file) ()
+    (:documentation "Load a file with CHECK or CHECK-FORMAL tests."))
+
+  (defmethod asdf:perform ((op asdf:load-op) (c tests))
+    (let ((*definitions-only* t))
+      (call-next-method))))

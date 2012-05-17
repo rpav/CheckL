@@ -1,7 +1,5 @@
 (in-package :checkl)
 
-(defvar *formal-testing-only* nil)
-
 (defmacro check-formal ((&key name (category :default) depends-on)
                         &body body)
   (unless (and name (symbolp name))
@@ -21,14 +19,10 @@
            (loop for val in result
                  as prev in last-result
                  do (5am:is (result-equalp last-result result)))))
-       (unless *formal-testing-only*
+       (unless *definitions-only*
          (values-list (run ,name))))))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defclass test-values (asdf:static-file)
-    ((package :accessor test-values-package :initarg :package))
-    (:documentation "An ASDF component for loading CheckL test values."))
-
   (defmacro define-test-op (system-name &optional other-system-name)
     (if other-system-name
         `(defmethod asdf:perform ((o asdf:test-op) (c (eql (asdf:find-system ',system-name))))
@@ -45,12 +39,4 @@
         (setf (package-tests-default-checkl-store tests) pathname)
         (if (probe-file pathname)
             (checkl-load pathname)
-            (warn "CheckL test values not loaded: ~A" pathname)))))
-
-
-  (defclass tests (asdf:cl-source-file) ()
-    (:documentation "Load a file with CHECK-FORMAL tests."))
-
-  (defmethod asdf:perform ((op asdf:load-op) (c tests))
-    (let ((*formal-testing-only* t))
-      (call-next-method))))
+            (warn "CheckL test values not loaded: ~A" pathname))))))
