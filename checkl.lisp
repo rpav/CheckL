@@ -245,4 +245,13 @@ and return the object, e.g. `(results (incf *x*) (incf *x*))`"
 
   (defmethod asdf:perform ((op asdf:load-op) (c tests))
     (let ((*definitions-only* t))
-      (call-next-method))))
+      (call-next-method)))
+
+  (defmethod asdf:perform ((op asdf:load-op) (c test-values))
+    (let ((*package* (find-package (test-values-package c))))
+      (let ((pathname (asdf:component-pathname c))
+            (tests (current-tests)))
+        (setf (package-tests-default-checkl-store tests) pathname)
+        (if (probe-file pathname)
+            (checkl-load pathname)
+            (warn "CheckL test values not loaded: ~A" pathname))))))
