@@ -230,9 +230,18 @@ test results, see `CLEAR-ANONYMOUS`."
 
 This will evaluate each subform in order and call RESULT-TRANSLATE on
 the result.  This is especially useful if subforms repeatedly modify
-and return the object, e.g. `(results (incf *x*) (incf *x*))`"
+and return the object, e.g. `(results (incf *x*) (incf *x*))`.
+
+If multiple values are returned, each value is mapped via
+RESULT-TRANSLATE and the result is returned as a list of the
+translated values."
   `(values
-    ,@(mapcar (lambda (x) `(checkl:result-translate ,x))
+    ,@(mapcar (lambda (x)
+                (let ((vlist (gensym)))
+                  `(let ((,vlist (multiple-value-list ,x)))
+                     (if (cdr ,vlist)
+                         (mapcar #'checkl:result-translate ,vlist)
+                         (checkl:result-translate (car ,vlist))))))
               values)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
