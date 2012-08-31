@@ -26,8 +26,8 @@
   (defmacro define-test-op (system-name &optional other-system-name)
     (if other-system-name
         `(defmethod asdf:perform ((o asdf:test-op) (c (eql (asdf:find-system ',system-name))))
-           (operate 'asdf:load-op ',other-system-name)
-           (operate 'asdf:test-op ',other-system-name))
+           (asdf:operate 'asdf:load-op ',other-system-name)
+           (asdf:operate 'asdf:test-op ',other-system-name))
         `(defmethod asdf:perform ((o asdf:test-op) (c (eql (asdf:find-system ',system-name))))
            (let ((5am:*test-dribble* *error-output*))
              (5am:run! :default))))))
