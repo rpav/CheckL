@@ -174,7 +174,8 @@ Run all tests, optionally specifying categories."
     (unless (> (hash-table-count results) 0)
       (warn "Not writing blank test results to ~A! CHECKL-LOAD, or write some tests." filespec))
     (with-open-file (stream filespec :direction :output :if-exists :supersede)
-      (let ((*print-readably* t)) 
+      (let ((*print-readably* t)
+            (*print-circle* t))
         (write (ms:marshal results) :stream stream)))
     (values)))
 
