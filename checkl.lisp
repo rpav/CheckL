@@ -97,14 +97,18 @@ OBJECT)) is called."))
                    (return-from verify-result result))
         (use-new-value ()
           :report "The new value is correct, use it from now on."
-          :test (lambda (c) (typep c 'result-error))
+          :test
+	  #-(or allegro ccl clisp) (lambda (c) (typep c 'result-error))
+	  #+(or allegro ccl clisp) (lambda (c) (or (null c) (typep c 'result-error)))
           (incf index-base (1+ result-index))
           (setf (nth result-index last-result) result-value)
           (setf cur-result (nthcdr (1+ result-index) cur-result))
           (setf last-result (nthcdr (1+ result-index) last-result)))
         (skip-test ()
           :report "Skip this, leaving the old value, but continue testing"
-          :test (lambda (c) (typep c 'result-error))
+	  :test
+          #-(or allegro ccl clisp) (lambda (c) (typep c 'result-error))
+	  #+(or allegro ccl clisp) (lambda (c) (or (null c) (typep c 'result-error)))
           (incf index-base (1+ result-index))
           (setf cur-result (nthcdr (1+ result-index) cur-result))
           (setf last-result (nthcdr (1+ result-index) last-result))
